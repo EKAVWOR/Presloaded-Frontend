@@ -1,0 +1,185 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #edf7ee;
+  --color-primary-100: #d7edd9;
+  --color-primary-200: #b3dbb8;
+  --color-primary-300: #7fc08a;
+  --color-primary-400: #4ea45f;
+  --color-primary-500: #1f7a2e;
+  --color-primary-600: #176125;
+  --color-primary-700: #124d1d;
+  --color-primary-800: #0d3915;
+  --color-primary-900: #08250d;
+  --color-primary-950: #041506;
+
+  --color-secondary-50: #f5f5f5;
+  --color-secondary-100: #e5e5e5;
+  --color-secondary-200: #d4d4d4;
+  --color-secondary-300: #a3a3a3;
+  --color-secondary-400: #737373;
+  --color-secondary-500: #525252;
+  --color-secondary-600: #404040;
+  --color-secondary-700: #262626;
+  --color-secondary-800: #171717;
+  --color-secondary-900: #0a0a0a;
+  --color-secondary-950: #000000;
+
+  --color-accent-50: #f3faf4;
+  --color-accent-100: #e2f5e5;
+  --color-accent-200: #c2e8c9;
+  --color-accent-300: #92d5a0;
+  --color-accent-400: #5fbc71;
+  --color-accent-500: #2f8f46;
+  --color-accent-600: #247038;
+  --color-accent-700: #1b572b;
+  --color-accent-800: #123d1e;
+  --color-accent-900: #0a2411;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    font-family: Inter, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #1f2937;
+    background-color: #ffffff;
+  }
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: #1f7a2e;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+.btn-primary:hover {
+  background-color: #176125;
+}
+
+.btn-secondary {
+  border: 2px solid #1f7a2e;
+  color: #1f7a2e;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+.btn-secondary:hover {
+  background-color: #1f7a2e;
+  color: white;
+}
+
+.btn-danger {
+  background-color: rgb(220 38 38);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+.btn-danger:hover {
+  background-color: rgb(185 28 28);
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgb(209 213 219);
+  border-radius: 0.5rem;
+  transition: all 0.3s;
+}
+.input-field:focus {
+  outline: none;
+  border-color: #1f7a2e;
+  box-shadow: 0 0 0 2px rgba(31, 122, 46, 0.3);
+}
+
+.section-padding {
+  padding: 4rem 0;
+}
+@media (min-width: 768px) {
+  .section-padding {
+    padding: 6rem 0;
+  }
+}
+
+.container-custom {
+  max-width: 80rem;
+  margin: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Hero Animations */
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+@keyframes blink {
+  0%, 50% { border-color: transparent; }
+  51%, 100% { border-color: white; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+@keyframes shine {
+  0% { background-position: -200%; }
+  100% { background-position: 200%; }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(31, 122, 46, 0.5); }
+  50% { box-shadow: 0 0 40px rgba(31, 122, 46, 0.8); }
+}
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(100px) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(100px) rotate(-360deg); }
+}
+@keyframes counter-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes parallax {
+  from { transform: translateY(0); }
+  to { transform: translateY(-10px); }
+}
+
+.typing-text {
+  border-right: 2px solid white;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: typewriter 3s steps(30) infinite, blink 1s infinite;
+}
+
+.parallax-glow {
+  transition: transform 0.1s ease-out;
+}
+
+.orbit-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: primary-400;
+  border-radius: 50%;
+  animation: orbit 12s linear infinite;
+}
+
+.orbit-particle:nth-child(1) { animation-delay: 0s; --orbit-radius: 80px; }
+.orbit-particle:nth-child(2) { animation-delay: -3s; --orbit-radius: 120px; }
+.orbit-particle:nth-child(3) { animation-delay: -6s; --orbit-radius: 100px; }
+
+.counter-stat {
+  counter-reset: count 0;
+}
+.counter-stat .count {
+  font-weight: bold;
+}
+.counter-stat.animate .count::after {
+  content: counter(count);
+  animation: counter-up 2.5s ease-out forwards;
+}
