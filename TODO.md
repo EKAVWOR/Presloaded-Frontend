@@ -1,10 +1,1 @@
-# Hero Section Dynamic UI Improvements
-
-## Steps:
-- [x] Step 1: Update tailwind.config.js with custom animations
-- [x] Step 2: Add custom keyframes and classes to src/index.css
-- [x] Step 3: Refactor src/components/home/Hero.jsx with animations, effects, JS hooks
-- [ ] Step 4: Test in dev server and update TODO progress
-- [x] Step 5: Complete task
-
-Current progress: All edits done. Test with `npm run dev` and visit homepage.
+# Update Testimonials Section with tes1-tes7 Images\n\n## Steps:\n- [ ] 1. Edit Testimonials.jsx to import and use tes1.jpg through tes7.jpg as avatar images\n- [ ] 2. Update testimonials data to use the 7 new images\n- [ ] 3. Verify slider works with 7 testimonials\n- [ ] 4. Confirm images load and display correctly\n- [ ] 5. Mark complete

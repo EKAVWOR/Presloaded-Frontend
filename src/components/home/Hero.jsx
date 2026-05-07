@@ -140,35 +140,62 @@ const Hero = () => {
             </div>
           </div>
 
-          {/* Right Visual */}
-          <div className="hidden lg:block animate-in slide-in-from-right duration-1000">
-            <div className="relative">
-              <div 
-                className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl hover:animate-shine hover:scale-105 transition-all duration-500 cursor-pointer" 
-                onClick={openModal}
-              >
-                <div className="bg-gradient-to-br from-primary-900/80 to-secondary-900/50 rounded-2xl h-[320px] flex items-center justify-center relative overflow-hidden group hover:scale-[1.02] transition-all duration-500">
-                  <div className="text-center z-10 relative animate-pulse">
-                    <div className="w-24 h-24 bg-gradient-to-r from-primary-400 via-accent-400 to-primary-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:scale-125 group-hover:rotate-6 transition-all duration-500">
-                      <FaPlay className="ml-1 text-white shadow-lg" size={28} />
-                    </div>
-                    <p className="text-primary-100 text-xl font-semibold group-hover:text-white transition-all">
-                      Play Academy Tour (2:30)
-                    </p>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 rounded-2xl" />
-                </div>
-              </div>
-              <div className="absolute -bottom-6 -left-6 bg-accent-500/90 px-6 py-3 rounded-xl shadow-xl text-sm font-semibold animate-bounce-slow">
-                ✅ Next Cohort Starts Soon
-              </div>
-            </div>
+         <div className="hidden lg:block animate-in slide-in-from-right duration-1000">
+  <div className="relative">
+
+    {/* Glass Card */}
+    <div 
+      className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl hover:scale-105 transition-all duration-500 cursor-pointer group"
+      onClick={openModal}
+    >
+
+      {/* Video Container */}
+      <div className="relative rounded-2xl h-[320px] overflow-hidden">
+
+        {/* Video */}
+        <video
+          src="/videos/academy-tour.mp4"
+          poster="/images/video-thumbnail.jpg"
+          className="w-full h-full object-cover"
+          muted
+          loop
+          autoPlay
+          playsInline
+        />
+
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition duration-300" />   
+
+        {/* Play Button Overlay */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+          
+          <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mb-4 
+                          shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+            <FaPlay className="text-white ml-1" size={24} />
           </div>
+
+          <p className="text-white font-semibold text-lg group-hover:text-gray-200 transition">
+            Play Academy Tour (2:30)
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    {/* Floating Badge */}
+    <div className="absolute -bottom-6 -left-6 bg-accent-500/90 px-6 py-3 rounded-xl shadow-xl text-sm font-semibold animate-bounce-slow">
+      ✅ Next Cohort Starts Soon
+    </div>
+
+  </div>
+</div>
         </div>
       </div>
 
       {/* Video Modal */}
-      <div id="video-modal" className="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+      <div id="video-modal" className="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4  not-even:">
         <div className="relative w-full max-w-4xl max-h-[90vh] mx-auto">
           <button 
             onClick={() => document.getElementById('video-modal')?.classList.add('hidden')}
