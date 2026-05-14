@@ -126,6 +126,10 @@ import AdminStudentsPage from "./admin/pages/AdminStudentsPage";
 import AdminMessagesPage from "./admin/pages/AdminMessagesPage";
 import AdminSubscribersPage from "./admin/pages/AdminSubscribersPage";
 
+import LearnPage from "./pages/LearnPage";
+import CertificatePage from "./pages/CertificatePage";
+import AdminCurriculumPage from "./admin/pages/AdminCurriculumPage";   
+
 // Layout wrapper for public pages (with Navbar + Footer)
 const PublicLayout = ({ children }) => (
   <>
@@ -148,7 +152,7 @@ function App() {
             {/* PUBLIC PAGES (Navbar + Footer)   */}
             {/* ================================ */}
             <Route
-              path="/"
+              path="/" 
               element={
                 <PublicLayout>
                   <HomePage />
@@ -164,6 +168,15 @@ function App() {
               }
             />
             <Route
+  path="/learn/:slug"
+  element={
+    <ProtectedRoute>
+      <LearnPage />  {/* No PublicLayout — full screen player */}
+    </ProtectedRoute>
+  }
+/>
+
+            <Route
               path="/courses"
               element={
                 <PublicLayout>
@@ -171,6 +184,15 @@ function App() {
                 </PublicLayout>
               }
             />
+
+            <Route
+  path="/certificate/:certificateNumber"
+  element={
+    <PublicLayout>
+      <CertificatePage />
+    </PublicLayout>
+  }
+/>
             <Route
               path="/courses/:slug"
               element={
@@ -195,6 +217,8 @@ function App() {
                 </PublicLayout>
               }
             />
+
+            
             <Route
               path="/login"
               element={
@@ -279,6 +303,12 @@ function App() {
                 </ProtectedRoute>
               }
             >
+
+              <Route
+  path="courses/:id/curriculum"
+  element={<AdminCurriculumPage />}
+/>
+
               <Route index element={<AdminDashboardPage />} />
               <Route path="courses" element={<AdminCoursesPage />} />
               <Route path="courses/new" element={<AdminAddCoursePage />} />

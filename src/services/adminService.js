@@ -31,3 +31,47 @@ export const deleteMessage = (id) => API.delete(`/contact/${id}`);
 
 // Newsletter
 export const getSubscribers = () => API.get("/newsletter");
+
+// Add to existing adminService.js
+
+// Curriculum
+export const getCurriculum = (courseId) =>
+  API.get(`/courses/${courseId}/curriculum`);
+
+export const addSection = (courseId, data) =>
+  API.post(`/courses/${courseId}/sections`, data);
+
+export const updateSection = (courseId, sectionId, data) =>
+  API.put(`/courses/${courseId}/sections/${sectionId}`, data);
+
+export const deleteSection = (courseId, sectionId) =>
+  API.delete(`/courses/${courseId}/sections/${sectionId}`);
+
+export const addLesson = (courseId, sectionId, data) =>
+  API.post(`/courses/${courseId}/sections/${sectionId}/lessons`, data);
+
+export const updateLesson = (courseId, sectionId, lessonId, data) =>
+  API.put(
+    `/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}`,
+    data
+  );
+
+export const deleteLesson = (courseId, sectionId, lessonId) =>
+  API.delete(
+    `/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}`
+  );
+
+export const uploadLessonVideo = (courseId, sectionId, lessonId, formData, onProgress) =>
+  API.post(
+    `/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/video`,
+    formData,
+    {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (e) => {
+        if (onProgress) {
+          onProgress(Math.round((e.loaded * 100) / e.total));
+        }
+      },
+      timeout: 0, // no timeout for large video uploads
+    }
+  );

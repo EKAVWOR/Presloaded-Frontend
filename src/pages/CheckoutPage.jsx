@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { usePaystackPayment } from "react-paystack";
 import { useAuth } from "../hooks/useAuth";
 import { useCart } from "../hooks/useCart";
@@ -14,8 +14,6 @@ const CheckoutPage = () => {
   const { cartItems, cartTotal, clearCart } = useCart();
   const navigate = useNavigate();
   const [processing, setProcessing] = useState(false);
-
-  // ✅ Reference can be regenerated on retry
   const [reference, setReference] = useState(() => generateReference());
 
   const paystackConfig = {
@@ -39,12 +37,13 @@ const CheckoutPage = () => {
     },
   };
 
+  // ✅ Always call hooks — never conditionally
   const initializePayment = usePaystackPayment(paystackConfig);
 
-  // ✅ All hooks above — early returns below
+  // ✅ Early returns AFTER all hooks
+  // ✅ Fixed: use <Navigate> instead of navigate() during render
   if (cartItems.length === 0) {
-    navigate("/cart");
-    return null;
+    return <Navigate to="/cart" replace />;
   }
 
   if (user && !user.isEmailVerified) {
@@ -69,6 +68,7 @@ const CheckoutPage = () => {
     );
   }
 
+  // ✅ Payment success handler — everything inside callback, not render
   const onSuccess = async (ref) => {
     setProcessing(true);
     try {
@@ -84,11 +84,14 @@ const CheckoutPage = () => {
 
       await verifyPayment(ref.reference);
 
+      // ✅ clearCart and toast inside callback — not during render
       clearCart();
-      toast.success("Payment successful! Check your email for your admission letter.");
+      toast.success(
+        "Payment successful! Check your email for your admission letter."
+      );
       navigate(`/payment-success?reference=${ref.reference}`);
     } catch (error) {
-      // ✅ Fresh reference for next attempt
+      // ✅ Generate fresh reference for retry
       setReference(generateReference());
 
       toast.error(
@@ -100,31 +103,36 @@ const CheckoutPage = () => {
     }
   };
 
+  // ✅ Fresh reference when popup is closed without paying
   const onClose = () => {
-    // ✅ Fresh reference when popup closed
     setReference(generateReference());
     toast.error("Payment cancelled");
   };
 
+  // ✅ Guard against double clicks
   const handlePay = () => {
-    if (processing) return; // ✅ Guard against double clicks
+    if (processing) return;
     initializePayment({ onSuccess, onClose });
   };
 
   return (
     <>
+      {/* Header */}
       <section className="bg-gradient-to-r from-primary-800 to-primary-600 text-white py-12">
         <div className="container-custom">
           <h1 className="text-3xl md:text-4xl font-bold">Checkout</h1>
         </div>
       </section>
 
+      {/* Main Content */}
       <section className="section-padding">
         <div className="container-custom max-w-4xl">
           <div className="grid md:grid-cols-5 gap-8">
+
             {/* Order Summary */}
             <div className="md:col-span-3 space-y-4">
               <h2 className="text-xl font-bold mb-2">Order Summary</h2>
+
               {cartItems.map((item) => (
                 <div
                   key={item._id}
@@ -156,15 +164,19 @@ const CheckoutPage = () => {
                 <p className="text-sm text-gray-600">Name: {user?.name}</p>
                 <p className="text-sm text-gray-600">Email: {user?.email}</p>
                 {user?.phone && (
-                  <p className="text-sm text-gray-600">Phone: {user?.phone}</p>
+                  <p className="text-sm text-gray-600">
+                    Phone: {user?.phone}
+                  </p>
                 )}
               </div>
             </div>
 
-            {/* Payment */}
+            {/* Payment Panel */}
             <div className="md:col-span-2">
               <div className="bg-white border rounded-xl p-6 sticky top-24">
                 <h3 className="text-lg font-bold mb-4">Payment</h3>
+
+                {/* Price Breakdown */}
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm text-gray-600">
                     <span>
@@ -174,7 +186,10 @@ const CheckoutPage = () => {
                     <span>{formatPrice(cartTotal)}</span>
                   </div>
                 </div>
+
                 <hr className="my-3" />
+
+                {/* Total */}
                 <div className="flex justify-between font-bold text-lg mb-6">
                   <span>Total</span>
                   <span className="text-primary-600">
@@ -182,6 +197,7 @@ const CheckoutPage = () => {
                   </span>
                 </div>
 
+                {/* Pay Button */}
                 <button
                   onClick={handlePay}
                   disabled={processing}
@@ -193,11 +209,13 @@ const CheckoutPage = () => {
                     : `Pay ${formatPrice(cartTotal)}`}
                 </button>
 
+                {/* Security Badge */}
                 <div className="flex items-center justify-center gap-2 mt-4 text-xs text-gray-400">
                   <FaShieldAlt />
                   <span>Secured by Paystack</span>
                 </div>
 
+                {/* Disclaimer */}
                 <p className="text-xs text-gray-500 mt-4 leading-relaxed">
                   By completing this purchase you agree to our terms. An
                   admission letter will be sent to your email upon successful
@@ -205,6 +223,7 @@ const CheckoutPage = () => {
                 </p>
               </div>
             </div>
+
           </div>
         </div>
       </section>

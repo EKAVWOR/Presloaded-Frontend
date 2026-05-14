@@ -17,17 +17,23 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem("cart", JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const addToCart = useCallback((course) => {
-    setCartItems((prev) => {
-      if (prev.find((item) => item._id === course._id)) {
-        toast.error("Course already in cart");
-        return prev;
-      }
-      toast.success("Added to cart!");
-      return [...prev, course];
-    });
-  }, []);
+  // ✅ Toast called OUTSIDE setState updater
+  const addToCart = useCallback(
+    (course) => {
+      const alreadyInCart = cartItems.some((item) => item._id === course._id);
 
+      if (alreadyInCart) {
+        toast.error("Course already in cart");
+        return;
+      }
+
+      setCartItems((prev) => [...prev, course]);
+      toast.success("Added to cart!");
+    },
+    [cartItems]
+  );
+
+  // ✅ Toast called OUTSIDE setState updater
   const removeFromCart = useCallback((courseId) => {
     setCartItems((prev) => prev.filter((item) => item._id !== courseId));
     toast.success("Removed from cart");
