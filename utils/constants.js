@@ -27,8 +27,7 @@ export const NAV_LINKS = [
 ];
 
 export const SOCIAL_LINKS = {
-  facebook: "https://facebook.com/presloadedacademy",
-  twitter: "https://twitter.com/presloadedacademy",
+  facebook: "https://web.facebook.com/presloadedacademy",
   instagram: "https://instagram.com/presloadedacademy",
   linkedin: "https://linkedin.com/companypresaloadedacademy",
 };

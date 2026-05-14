@@ -34,41 +34,38 @@ const CertificatePage = () => {
     }
   };
 
-  // ===== DOWNLOAD AS PDF =====
+  // ===== DOWNLOAD AS PDF (server-generated) =====
+  // Avoid html2canvas entirely because Tailwind v4 emits modern CSS colors (e.g. oklch)
+  // which your html2canvas build can't parse.
   const handleDownloadPDF = async () => {
-    if (!certificateRef.current) return;
-    setDownloading(true);
-
     try {
-      // Capture the certificate as canvas
-      const canvas = await html2canvas(certificateRef.current, {
-        scale: 2, // Higher quality
-        useCORS: true,
-        backgroundColor: "#ffffff",
-      });
+      if (!certificateNumber) {
+        toast.error("Certificate number missing");
+        return;
+      }
+      setDownloading(true);
 
-      const imgData = canvas.toDataURL("image/png");
-      
-      // Create PDF in landscape A4
-      const pdf = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: "a4",
-      });
+      const { downloadCertificatePDF } = await import(
+        "../services/enrollmentService"
+      );
+      const response = await downloadCertificatePDF(certificateNumber);
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-
-      // Save with descriptive filename
-      const filename = `${COMPANY_INFO.name}_Certificate_${certificate.studentName.replace(/\s+/g, "_")}.pdf`;
-      pdf.save(filename);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `Certificate_${certificateNumber}.pdf`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
 
       toast.success("Certificate downloaded! 🎉");
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to download certificate");
+      console.error("handleDownloadPDF error:", err);
+      toast.error("Failed to download certificate PDF");
     } finally {
       setDownloading(false);
     }
@@ -76,7 +73,10 @@ const CertificatePage = () => {
 
   // ===== DOWNLOAD AS PNG IMAGE =====
   const handleDownloadImage = async () => {
-    if (!certificateRef.current) return;
+    if (!certificateRef.current) {
+      toast.error("Certificate is not ready yet");
+      return;
+    }
     setDownloading(true);
 
     try {
@@ -84,6 +84,8 @@ const CertificatePage = () => {
         scale: 3,
         useCORS: true,
         backgroundColor: "#ffffff",
+        logging: false,
+        foreignObjectRendering: false,
       });
 
       const link = document.createElement("a");
@@ -93,7 +95,12 @@ const CertificatePage = () => {
 
       toast.success("Image downloaded!");
     } catch (err) {
-      toast.error("Failed to download image");
+      console.error("handleDownloadImage error:", err);
+      toast.error(
+        err?.message?.includes("CORS")
+          ? "Download blocked by image CORS (check logo/signature URLs)"
+          : "Failed to download image"
+      );
     } finally {
       setDownloading(false);
     }

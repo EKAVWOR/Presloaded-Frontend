@@ -92,18 +92,18 @@ const Footer = () => {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-3">
                 <FaMapMarkerAlt className="mt-1 text-primary-400" />
-                <span>123 Tech Avenue, Ikeja, Lagos, Nigeria</span>
+                <span>Back Sudoz Filling Station, Opp Word of Life Campus Fellowship, Abraka, Delta State</span>
               </li>
               <li className="flex items-center gap-3">
                 <FaPhone className="text-primary-400" />
                 <a href="tel:+2348012345678" className="hover:text-primary-400">
-                  +234 801 234 5678
+                  +2347079737566
                 </a>
               </li>
               <li className="flex items-center gap-3">
                 <FaEnvelope className="text-primary-400" />
                 <a href="mailto:info@techacademy.com" className="hover:text-primary-400">
-                  info@techacademy.com
+                  presloadedacademy@gmail.com
                 </a>
               </li>
             </ul>

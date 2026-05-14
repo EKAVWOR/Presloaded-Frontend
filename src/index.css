@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary-50: #edf7ee;
+  /* --color-primary-50: #edf7ee;
   --color-primary-100: #d7edd9;
   --color-primary-200: #b3dbb8;
   --color-primary-300: #7fc08a;
@@ -34,8 +34,40 @@
   --color-accent-600: #247038;
   --color-accent-700: #1b572b;
   --color-accent-800: #123d1e;
-  --color-accent-900: #0a2411;
+  --color-accent-900: #0a2411; */
 
+
+  --color-primary-50: #edf7ee;
+  --color-primary-100: #d7edd9;
+  --color-primary-200: #b3dbb8;
+  --color-primary-300: #7fc08a;
+  --color-primary-400: #4ea45f;
+  --color-primary-500: #1f7a2e;
+  --color-primary-600: #176125;
+  --color-primary-700: #124d1d;
+  --color-primary-800: #0d3915;
+  --color-primary-900: #08250d;
+  --color-primary-950: #041506;
+
+  --color-secondary-50: #f5f5f5;
+  --color-secondary-100: #e5e5e5;
+  /* ...rest of your colors... */
+
+  /* Add back any common colors you need */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-transparent: transparent;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-500: #6b7280;
+  --color-gray-700: #374151;
+  --color-gray-900: #111827;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+
+  
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
