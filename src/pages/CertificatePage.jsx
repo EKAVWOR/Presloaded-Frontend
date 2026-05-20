@@ -1,14 +1,18 @@
-// src/pages/CertificatePage.jsx
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import {
   FaDownload, FaShare, FaArrowLeft, FaPrint,
   FaCheckCircle, FaSpinner,
 } from "react-icons/fa";
-import { verifyCertificate } from "../services/enrollmentService";
+
+// ✅ FIXED: Both functions imported statically here
+import { 
+  verifyCertificate, 
+  downloadCertificatePDF 
+} from "../services/enrollmentService";
+
 import { COMPANY_INFO } from "../../utils/constants";
 import Loader from "../components/common/Loader";
 
@@ -35,8 +39,6 @@ const CertificatePage = () => {
   };
 
   // ===== DOWNLOAD AS PDF (server-generated) =====
-  // Avoid html2canvas entirely because Tailwind v4 emits modern CSS colors (e.g. oklch)
-  // which your html2canvas build can't parse.
   const handleDownloadPDF = async () => {
     try {
       if (!certificateNumber) {
@@ -45,9 +47,7 @@ const CertificatePage = () => {
       }
       setDownloading(true);
 
-      const { downloadCertificatePDF } = await import(
-        "../services/enrollmentService"
-      );
+      // ✅ FIXED: Using the static import instead of await import()
       const response = await downloadCertificatePDF(certificateNumber);
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -220,33 +220,27 @@ const CertificatePage = () => {
           style={{
             width: "100%",
             maxWidth: "1100px",
-            aspectRatio: "1.414 / 1", // A4 landscape ratio
+            aspectRatio: "1.414 / 1", 
           }}
         >
-          {/* Certificate Border Wrapper */}
           <div className="w-full h-full p-3 bg-gradient-to-br from-yellow-50 via-white to-yellow-50">
             <div className="w-full h-full border-4 border-double border-yellow-600 p-3">
               <div className="w-full h-full border border-yellow-500 relative bg-white">
 
-                {/* Decorative corners */}
                 <div className="absolute top-0 left-0 w-24 h-24 border-t-4 border-l-4 border-primary-600 rounded-tl-lg"></div>
                 <div className="absolute top-0 right-0 w-24 h-24 border-t-4 border-r-4 border-primary-600 rounded-tr-lg"></div>
                 <div className="absolute bottom-0 left-0 w-24 h-24 border-b-4 border-l-4 border-primary-600 rounded-bl-lg"></div>
                 <div className="absolute bottom-0 right-0 w-24 h-24 border-b-4 border-r-4 border-primary-600 rounded-br-lg"></div>
 
-                {/* Watermark */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04]">
                   <div className="text-9xl font-black text-primary-900 transform rotate-[-30deg]">
                     {COMPANY_INFO.name.split(" ")[0].toUpperCase()}
                   </div>
                 </div>
 
-                {/* Content */}
                 <div className="relative h-full flex flex-col items-center justify-between py-10 px-12 text-center">
 
-                  {/* ===== HEADER: Logo + Company Name ===== */}
                   <div className="flex items-center gap-4">
-                    {/* Logo */}
                     <div className="w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-800 rounded-full flex items-center justify-center text-white shadow-lg">
                       {COMPANY_INFO.logo ? (
                         <img
@@ -274,7 +268,6 @@ const CertificatePage = () => {
                     </div>
                   </div>
 
-                  {/* ===== TITLE ===== */}
                   <div className="mt-4">
                     <p className="text-sm uppercase tracking-[0.3em] text-gray-500 mb-2">
                       This is to certify that
@@ -282,7 +275,6 @@ const CertificatePage = () => {
                     <div className="w-32 h-0.5 bg-gradient-to-r from-transparent via-yellow-600 to-transparent mx-auto"></div>
                   </div>
 
-                  {/* ===== STUDENT NAME ===== */}
                   <div>
                     <h2 className="text-5xl font-bold text-gray-800 mb-2"
                         style={{ fontFamily: '"Playfair Display", "Georgia", serif' }}>
@@ -294,7 +286,6 @@ const CertificatePage = () => {
                     </p>
                   </div>
 
-                  {/* ===== ACHIEVEMENT TEXT ===== */}
                   <div className="max-w-2xl">
                     <p className="text-base text-gray-700 leading-relaxed">
                       has successfully completed the course
@@ -308,7 +299,6 @@ const CertificatePage = () => {
                     </p>
                   </div>
 
-                  {/* ===== CERTIFICATE BADGE ===== */}
                   <div className="my-2">
                     <div className="relative">
                       <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-lg">
@@ -318,10 +308,7 @@ const CertificatePage = () => {
                     </div>
                   </div>
 
-                  {/* ===== FOOTER: Date, Signature, Cert Number ===== */}
                   <div className="w-full items-center grid grid-cols-3 gap-8 mt-2">
-                    
-                    {/* Date */}
                     <div className="text-center">
                       <div className="border-b-2 border-gray-400 pb-1 mb-1">
                         <p className="text-sm font-semibold text-gray-700">
@@ -333,7 +320,6 @@ const CertificatePage = () => {
                       </p>
                     </div>
 
-                    {/* Certificate Number */}
                     <div className="text-center">
                       <div className="border-b-2 border-gray-400 pb-1 mb-1">
                         <p className="text-xs font-mono font-semibold text-gray-700">
@@ -345,7 +331,6 @@ const CertificatePage = () => {
                       </p>
                     </div>
 
-                    {/* Signature */}
                     <div className="text-center">
                       <div className="border-b-2 border-gray-400 pb-1 mb-1">
                         {COMPANY_INFO.signature ? (
@@ -367,7 +352,6 @@ const CertificatePage = () => {
                     </div>
                   </div>
 
-                  {/* ===== VERIFICATION ===== */}
                   <div className="text-center mt-2">
                     <p className="text-xs text-gray-400">
                       Verify this certificate at: {COMPANY_INFO.website}/verify/{certificate.certificateNumber}
@@ -421,7 +405,6 @@ const CertificatePage = () => {
         </div>
       </div>
 
-      {/* ===== PRINT STYLES ===== */}
       <style>{`
         @media print {
           @page {
