@@ -29,10 +29,10 @@ const ContactPage = () => {
   };
 
   const contactInfo = [
-    { icon: <FaMapMarkerAlt />, title: "Address", detail: "123 Tech Avenue, Ikeja, Lagos" },
-    { icon: <FaPhone />, title: "Phone", detail: "+234 801 234 5678" },
-    { icon: <FaEnvelope />, title: "Email", detail: "info@techacademy.com" },
-    { icon: <FaClock />, title: "Hours", detail: "Mon – Fri: 9AM – 5PM" },
+    { icon: <FaMapMarkerAlt />, title: "Address", detail: "Back Sudoz Filling Station, Opp Word of Life Campus Fellowship, Abraka, Delta State" },
+    { icon: <FaPhone />, title: "Phone", detail: "+2347079737566" },
+    { icon: <FaEnvelope />, title: "Email", detail: "presloadedacademy@gmail.com" },
+    { icon: <FaClock />, title: "Hours", detail: "Mon – Sat: 9AM – 5PM" },
   ];
 
   return (
