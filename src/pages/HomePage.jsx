@@ -5,6 +5,7 @@ import WhyChooseUs from "../components/home/WhyChooseUs";
 import Programs from "../components/home/Programs";
 import Testimonials from "../components/home/Testimonials";
 import CTA from "../components/home/CTA";
+import FAQ from "../components/home/Faq"
 
 const HomePage = () => (
   <>
@@ -13,6 +14,7 @@ const HomePage = () => (
     <Programs />
     <WhyChooseUs />
     <Testimonials />
+    <FAQ/>
     <CTA />
   </>
 );
