@@ -6,8 +6,10 @@ import {
   FaPaintBrush,
   FaShieldAlt,
   FaCloud,
-  FaArrowRight
+  FaArrowRight,
+  FaVideo
 } from "react-icons/fa";
+import { SiMaterialdesignicons } from "react-icons/si"
 import img1 from "../../assets/img1.jpg";
 
 const programs = [
@@ -26,10 +28,10 @@ const programs = [
     img: img1
   },
   { 
-    icon: <FaDatabase size={36} />, 
-    name: "Data Science", 
+    icon: <FaVideo  size={36} />, 
+    name: "Cinematography", 
     color: "from-purple-500 to-violet-600", 
-    desc: "AI & Analytics",
+    desc: "Photography & Videography",
     img: img1
   },
   { 
@@ -47,10 +49,10 @@ const programs = [
     img: img1
   },
   { 
-    icon: <FaCloud size={36} />, 
-    name: "Cloud Computing", 
+    icon: <SiMaterialdesignicons size={36} />, 
+    name: "Graphic design", 
     color: "from-yellow-500 to-amber-600", 
-    desc: "AWS & Azure",
+    desc: "Photoshop, Pixellab, Canva",
     img: img1
   },
 ];

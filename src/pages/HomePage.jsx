@@ -11,7 +11,6 @@ const HomePage = () => (
     <Hero />
     <Stats />
     <Programs />
-    <FeaturedCourses />
     <WhyChooseUs />
     <Testimonials />
     <CTA />

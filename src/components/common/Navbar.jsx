@@ -12,6 +12,7 @@ import {
   FaChevronDown,
 } from "react-icons/fa";
 import { NAV_LINKS, ACADEMY_NAME } from "../../../utils/constants";
+import logo from "../../assets/logo.png"
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -35,7 +36,7 @@ const Navbar = () => {
           <Link to="/" className="flex items-center gap-2">
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xl">T</span>
-              <img src="/src/assets/logo.png" alt="" />
+              <img src={logo} alt="" />
             </div>
             <span className="text-xl font-bold text-gray-800 hidden sm:block">
               {ACADEMY_NAME}
