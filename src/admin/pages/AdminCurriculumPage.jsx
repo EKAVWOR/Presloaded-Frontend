@@ -1,22 +1,59 @@
 // src/admin/pages/AdminCurriculumPage.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
-  FaPlus, FaTrash, FaEdit, FaVideo, FaCheck,
-  FaChevronDown, FaChevronUp, FaArrowLeft, FaEye,
-  FaEyeSlash, FaUpload,
+  FaPlus,
+  FaTrash,
+  FaEdit,
+  FaVideo,
+  FaCheck,
+  FaChevronDown,
+  FaChevronUp,
+  FaArrowLeft,
+  FaEye,
+  FaEyeSlash,
+  FaYoutube,
 } from "react-icons/fa";
 import {
-  getCurriculum, addSection, updateSection, deleteSection,
-  addLesson, updateLesson, deleteLesson, uploadLessonVideo,
+  getCurriculum,
+  addSection,
+  updateSection,
+  deleteSection,
+  addLesson,
+  updateLesson,
+  deleteLesson,
+  uploadLessonVideo,
 } from "../../services/adminService";
 import API from "../../services/api";
 import Loader from "../../components/common/Loader";
 
+// ============================================================
+// ✅ YouTube Helpers
+// ============================================================
+const getYouTubeVideoId = (url) => {
+  if (!url) return null;
+  const match = url.match(
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([^&\n?#]+)/
+  );
+  return match ? match[1] : null;
+};
+
+const getYouTubeThumbnail = (videoId) => {
+  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+};
+
+const isValidYouTubeUrl = (url) => {
+  return getYouTubeVideoId(url) !== null;
+};
+
+// ============================================================
+// Main Component
+// ============================================================
 const AdminCurriculumPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [course, setCourse] = useState(null);
   const [sections, setSections] = useState([]);
   const [stats, setStats] = useState({});
@@ -35,12 +72,13 @@ const AdminCurriculumPage = () => {
   const [editingSection, setEditingSection] = useState(null);
   const [editingLesson, setEditingLesson] = useState(null);
 
-  // Upload
-  const [uploadingLesson, setUploadingLesson] = useState(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-
-  // ✅ NEW: Track which lesson is being toggled (prevents double-click)
+  // Toggle publish
   const [togglingLesson, setTogglingLesson] = useState(null);
+
+  // ✅ YouTube Modal state
+  const [youtubeModal, setYoutubeModal] = useState(null); // { sectionId, lessonId }
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [savingYoutube, setSavingYoutube] = useState(false);
 
   useEffect(() => {
     loadCurriculum();
@@ -53,7 +91,7 @@ const AdminCurriculumPage = () => {
       const found = data.courses?.find((c) => c._id === id);
       setCourse(found || null);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load course info:", err);
     }
   };
 
@@ -70,6 +108,7 @@ const AdminCurriculumPage = () => {
       setExpandedSections(expanded);
     } catch (err) {
       toast.error("Failed to load curriculum");
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -125,7 +164,12 @@ const AdminCurriculumPage = () => {
   // ===== LESSON HANDLERS =====
   const startAddLesson = (sectionId) => {
     setAddingLesson({ [sectionId]: true });
-    setNewLesson({ title: "", description: "", isFree: false, isPublished: false });
+    setNewLesson({
+      title: "",
+      description: "",
+      isFree: false,
+      isPublished: false,
+    });
   };
 
   const handleAddLesson = async (sectionId) => {
@@ -170,18 +214,18 @@ const AdminCurriculumPage = () => {
     }
   };
 
-  // ✅ NEW: Quick publish/unpublish toggle
+  // ===== PUBLISH HANDLERS =====
   const handleTogglePublish = async (sectionId, lesson) => {
-    if (togglingLesson === lesson._id) return; // prevent double-click
+    if (togglingLesson === lesson._id) return;
 
     if (!lesson.videoUrl && !lesson.isPublished) {
-      return toast.error("Upload a video before publishing this lesson");
+      return toast.error("Add a video before publishing this lesson");
     }
 
     setTogglingLesson(lesson._id);
     const newStatus = !lesson.isPublished;
 
-    // ✅ Optimistic UI update
+    // Optimistic UI update
     setSections((prev) =>
       prev.map((s) =>
         s._id === sectionId
@@ -200,7 +244,7 @@ const AdminCurriculumPage = () => {
         isPublished: newStatus,
       });
       toast.success(
-        newStatus ? "✅ Lesson published — visible to students!" : "Lesson moved to draft"
+        newStatus ? "✅ Lesson published!" : "Lesson moved to draft"
       );
     } catch (err) {
       // Rollback on error
@@ -210,7 +254,9 @@ const AdminCurriculumPage = () => {
             ? {
                 ...s,
                 lessons: s.lessons.map((l) =>
-                  l._id === lesson._id ? { ...l, isPublished: !newStatus } : l
+                  l._id === lesson._id
+                    ? { ...l, isPublished: !newStatus }
+                    : l
                 ),
               }
             : s
@@ -222,7 +268,6 @@ const AdminCurriculumPage = () => {
     }
   };
 
-  // ✅ NEW: Bulk publish all lessons in a section
   const handlePublishAllInSection = async (section) => {
     const draftLessons = (section.lessons || []).filter(
       (l) => !l.isPublished && l.videoUrl
@@ -232,7 +277,11 @@ const AdminCurriculumPage = () => {
       return toast.error("No draft lessons with videos to publish");
     }
 
-    if (!confirm(`Publish ${draftLessons.length} draft lesson(s) in "${section.title}"?`)) {
+    if (
+      !confirm(
+        `Publish ${draftLessons.length} draft lesson(s) in "${section.title}"?`
+      )
+    ) {
       return;
     }
 
@@ -249,39 +298,51 @@ const AdminCurriculumPage = () => {
     }
   };
 
-  // ===== VIDEO UPLOAD =====
-  const handleVideoUpload = async (sectionId, lessonId, file) => {
-    if (!file) return;
-
-    if (file.size > 1024 * 1024 * 1024) {
-      return toast.error("File too large. Max 1GB");
+  // ============================================================
+  // ✅ YOUTUBE URL HANDLER
+  // ============================================================
+  const handleSaveYouTubeUrl = async () => {
+    if (!youtubeUrl.trim()) {
+      return toast.error("Please enter a YouTube URL");
     }
 
-    const allowedTypes = ["video/mp4", "video/mov", "video/avi", "video/mkv", "video/webm"];
-    if (!allowedTypes.includes(file.type)) {
-      return toast.error("Invalid file type. Use mp4, mov, avi, mkv or webm");
+    const videoId = getYouTubeVideoId(youtubeUrl);
+    if (!videoId) {
+      return toast.error(
+        "Invalid YouTube URL. Use format: https://youtu.be/VIDEO_ID"
+      );
     }
 
-    setUploadingLesson(lessonId);
-    setUploadProgress(0);
-
-    const formData = new FormData();
-    formData.append("video", file);
+    setSavingYoutube(true);
 
     try {
-      await uploadLessonVideo(id, sectionId, lessonId, formData, (progress) => {
-        setUploadProgress(progress);
-      });
-      toast.success("Video uploaded successfully!");
+      await uploadLessonVideo(
+        id,
+        youtubeModal.sectionId,
+        youtubeModal.lessonId,
+        {
+          videoUrl: youtubeUrl.trim(),
+          videoType: "youtube",
+          videoPublicId: videoId,
+          thumbnailUrl: getYouTubeThumbnail(videoId),
+          videoDuration: 0,
+        }
+      );
+
+      toast.success("✅ YouTube video added!");
+      setYoutubeModal(null);
+      setYoutubeUrl("");
       loadCurriculum();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Video upload failed");
+      toast.error(
+        err.response?.data?.message || "Failed to save YouTube URL"
+      );
     } finally {
-      setUploadingLesson(null);
-      setUploadProgress(0);
+      setSavingYoutube(false);
     }
   };
 
+  // ===== HELPERS =====
   const formatDuration = (seconds) => {
     if (!seconds) return "—";
     const m = Math.floor(seconds / 60);
@@ -289,7 +350,6 @@ const AdminCurriculumPage = () => {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  // ✅ NEW: Calculate publish stats
   const getPublishStats = () => {
     let total = 0;
     let published = 0;
@@ -307,71 +367,112 @@ const AdminCurriculumPage = () => {
   const publishStats = getPublishStats();
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl mx-auto p-6">
       {/* Header */}
       <div className="mb-6">
         <button
           onClick={() => navigate("/admin/courses")}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-3 text-sm"
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-3 text-sm transition"
         >
           <FaArrowLeft /> Back to Courses
         </button>
-        <h1 className="text-2xl font-bold text-gray-800">Curriculum Builder</h1>
+        <h1 className="text-2xl font-bold text-gray-800">
+          Curriculum Builder
+        </h1>
         {course && (
           <p className="text-gray-500 text-sm mt-1">{course.title}</p>
         )}
       </div>
 
-      {/* ✅ Publish Status Banner */}
+      {/* ✅ YouTube Info Banner */}
+      <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-start gap-3">
+        <FaYoutube className="text-red-600 text-2xl mt-0.5 flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-red-900 mb-1">
+            📺 Use YouTube for video hosting (FREE & Unlimited)
+          </p>
+          <ol className="text-xs text-red-700 space-y-0.5 list-decimal list-inside">
+            <li>
+              Upload your video to{" "}
+              <a
+                href="https://youtube.com/upload"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-semibold"
+              >
+                youtube.com/upload
+              </a>
+            </li>
+            <li>
+              Set visibility to <strong>"Unlisted"</strong> (not Public!)
+            </li>
+            <li>
+              Copy the URL and click the red YouTube button on a lesson
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      {/* Publish Status Banner */}
       {publishStats.drafts > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 flex items-start gap-3">
           <div className="text-yellow-600 mt-0.5">⚠️</div>
           <div className="flex-1">
             <p className="text-sm font-semibold text-yellow-900">
-              {publishStats.drafts} lesson{publishStats.drafts !== 1 && "s"} in draft
+              {publishStats.drafts} lesson
+              {publishStats.drafts !== 1 && "s"} in draft
             </p>
             <p className="text-xs text-yellow-700 mt-0.5">
-              Draft lessons are hidden from students. Click the eye icon on each lesson to publish.
+              Draft lessons are hidden from students. Click the eye icon to
+              publish.
             </p>
           </div>
         </div>
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white border rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-primary-600">{stats.totalSections || 0}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white border rounded-xl p-4 text-center shadow-sm">
+          <p className="text-2xl font-bold text-primary-600">
+            {stats.totalSections || 0}
+          </p>
           <p className="text-sm text-gray-500">Sections</p>
         </div>
-        <div className="bg-white border rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-primary-600">{stats.totalLessons || 0}</p>
+        <div className="bg-white border rounded-xl p-4 text-center shadow-sm">
+          <p className="text-2xl font-bold text-primary-600">
+            {stats.totalLessons || 0}
+          </p>
           <p className="text-sm text-gray-500">Total Lessons</p>
         </div>
-        <div className="bg-white border rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-green-600">{publishStats.published}</p>
+        <div className="bg-white border rounded-xl p-4 text-center shadow-sm">
+          <p className="text-2xl font-bold text-green-600">
+            {publishStats.published}
+          </p>
           <p className="text-sm text-gray-500">Published</p>
         </div>
-        <div className="bg-white border rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-gray-400">{publishStats.drafts}</p>
+        <div className="bg-white border rounded-xl p-4 text-center shadow-sm">
+          <p className="text-2xl font-bold text-gray-400">
+            {publishStats.drafts}
+          </p>
           <p className="text-sm text-gray-500">Drafts</p>
         </div>
       </div>
 
       {/* Add Section */}
-      <div className="bg-white border rounded-xl p-4 mb-6">
-        <h2 className="font-semibold mb-3">Add New Section</h2>
+      <div className="bg-white border rounded-xl p-4 mb-6 shadow-sm">
+        <h2 className="font-semibold mb-3 text-gray-800">Add New Section</h2>
         <div className="flex gap-2">
           <input
             value={newSectionTitle}
             onChange={(e) => setNewSectionTitle(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddSection()}
             placeholder="e.g. Introduction to JavaScript"
-            className="input-field flex-1"
+            className="input-field flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
           <button
             onClick={handleAddSection}
             disabled={addingSection}
-            className="btn-primary flex items-center gap-2 whitespace-nowrap"
+            className="btn-primary flex items-center gap-2 whitespace-nowrap px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition"
           >
             <FaPlus />
             {addingSection ? "Adding..." : "Add Section"}
@@ -381,9 +482,11 @@ const AdminCurriculumPage = () => {
 
       {/* Sections */}
       {sections.length === 0 ? (
-        <div className="text-center py-16 bg-white border rounded-xl">
+        <div className="text-center py-16 bg-white border rounded-xl shadow-sm">
           <FaVideo size={40} className="text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No sections yet. Add your first section above.</p>
+          <p className="text-gray-500">
+            No sections yet. Add your first section above.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -395,7 +498,10 @@ const AdminCurriculumPage = () => {
               ).length;
 
               return (
-                <div key={section._id} className="bg-white border rounded-xl overflow-hidden">
+                <div
+                  key={section._id}
+                  className="bg-white border rounded-xl overflow-hidden shadow-sm"
+                >
                   {/* Section Header */}
                   <div className="flex items-center justify-between p-4 bg-gray-50 border-b">
                     <div className="flex items-center gap-3 flex-1">
@@ -411,11 +517,15 @@ const AdminCurriculumPage = () => {
                           }
                           onKeyDown={(e) => {
                             if (e.key === "Enter")
-                              handleUpdateSection(section._id, e.target.value);
-                            if (e.key === "Escape") setEditingSection(null);
+                              handleUpdateSection(
+                                section._id,
+                                e.target.value
+                              );
+                            if (e.key === "Escape")
+                              setEditingSection(null);
                           }}
                           autoFocus
-                          className="input-field flex-1 py-1"
+                          className="input-field flex-1 py-1 px-2 border rounded"
                         />
                       ) : (
                         <h3 className="font-semibold text-gray-800">
@@ -428,7 +538,6 @@ const AdminCurriculumPage = () => {
                     </div>
 
                     <div className="flex items-center gap-2 ml-3">
-                      {/* ✅ NEW: Bulk publish button */}
                       {sectionDrafts > 0 && (
                         <button
                           onClick={() => handlePublishAllInSection(section)}
@@ -489,14 +598,14 @@ const AdminCurriculumPage = () => {
                                   defaultValue={lesson.title}
                                   id={`lesson-title-${lesson._id}`}
                                   placeholder="Lesson title"
-                                  className="input-field w-full"
+                                  className="input-field w-full px-3 py-2 border rounded"
                                 />
                                 <textarea
                                   defaultValue={lesson.description}
                                   id={`lesson-desc-${lesson._id}`}
                                   placeholder="Lesson description (optional)"
                                   rows={2}
-                                  className="input-field w-full resize-none"
+                                  className="input-field w-full resize-none px-3 py-2 border rounded"
                                 />
                                 <label className="flex items-center gap-2 text-sm">
                                   <input
@@ -524,25 +633,27 @@ const AdminCurriculumPage = () => {
                                           title: document.getElementById(
                                             `lesson-title-${lesson._id}`
                                           ).value,
-                                          description: document.getElementById(
-                                            `lesson-desc-${lesson._id}`
-                                          ).value,
+                                          description:
+                                            document.getElementById(
+                                              `lesson-desc-${lesson._id}`
+                                            ).value,
                                           isFree: document.getElementById(
                                             `lesson-free-${lesson._id}`
                                           ).checked,
-                                          isPublished: document.getElementById(
-                                            `lesson-pub-${lesson._id}`
-                                          ).checked,
+                                          isPublished:
+                                            document.getElementById(
+                                              `lesson-pub-${lesson._id}`
+                                            ).checked,
                                         }
                                       )
                                     }
-                                    className="btn-primary text-sm py-1.5"
+                                    className="btn-primary text-sm py-1.5 px-4 bg-primary-600 text-white rounded hover:bg-primary-700"
                                   >
                                     Save
                                   </button>
                                   <button
                                     onClick={() => setEditingLesson(null)}
-                                    className="btn-secondary text-sm py-1.5"
+                                    className="btn-secondary text-sm py-1.5 px-4 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
                                   >
                                     Cancel
                                   </button>
@@ -565,17 +676,24 @@ const AdminCurriculumPage = () => {
                                           Free
                                         </span>
                                       )}
-
-                                      {/* ✅ CLICKABLE Publish Toggle Badge */}
                                       <button
-                                        onClick={() => handleTogglePublish(section._id, lesson)}
-                                        disabled={togglingLesson === lesson._id}
+                                        onClick={() =>
+                                          handleTogglePublish(
+                                            section._id,
+                                            lesson
+                                          )
+                                        }
+                                        disabled={
+                                          togglingLesson === lesson._id
+                                        }
                                         className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 cursor-pointer transition ${
                                           lesson.isPublished
                                             ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
                                             : "bg-gray-200 text-gray-600 hover:bg-gray-300"
                                         } ${
-                                          togglingLesson === lesson._id ? "opacity-50" : ""
+                                          togglingLesson === lesson._id
+                                            ? "opacity-50"
+                                            : ""
                                         }`}
                                         title={
                                           lesson.isPublished
@@ -589,7 +707,7 @@ const AdminCurriculumPage = () => {
                                           </>
                                         ) : (
                                           <>
-                                            <FaEyeSlash size={10} /> Draft (click to publish)
+                                            <FaEyeSlash size={10} /> Draft
                                           </>
                                         )}
                                       </button>
@@ -599,64 +717,76 @@ const AdminCurriculumPage = () => {
                                         {lesson.description}
                                       </p>
                                     )}
-                                    {/* Video status */}
+
+                                    {/* ✅ Video Status (shows type) */}
                                     <div className="flex items-center gap-3 mt-2">
                                       {lesson.videoUrl ? (
-                                        <span className="text-xs text-green-600 flex items-center gap-1">
-                                          <FaCheck size={10} />
-                                          Video uploaded
-                                          {lesson.videoDuration > 0 &&
-                                            ` (${formatDuration(lesson.videoDuration)})`}
+                                        <span className="text-xs flex items-center gap-1">
+                                          {lesson.videoType === "youtube" ? (
+                                            <>
+                                              <FaYoutube
+                                                className="text-red-600"
+                                                size={12}
+                                              />
+                                              <span className="text-red-600 font-medium">
+                                                YouTube video added
+                                              </span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <FaCheck
+                                                className="text-green-600"
+                                                size={10}
+                                              />
+                                              <span className="text-green-600">
+                                                Video uploaded
+                                                {lesson.videoDuration > 0 &&
+                                                  ` (${formatDuration(
+                                                    lesson.videoDuration
+                                                  )})`}
+                                              </span>
+                                            </>
+                                          )}
                                         </span>
                                       ) : (
                                         <span className="text-xs text-orange-500 flex items-center gap-1">
-                                          <FaVideo size={10} /> No video yet — upload to publish
+                                          <FaVideo size={10} /> No video yet
+                                          — add YouTube link
                                         </span>
                                       )}
                                     </div>
-
-                                    {/* Upload progress */}
-                                    {uploadingLesson === lesson._id && (
-                                      <div className="mt-2">
-                                        <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                          <span>Uploading...</span>
-                                          <span>{uploadProgress}%</span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                          <div
-                                            className="bg-primary-600 h-1.5 rounded-full transition-all"
-                                            style={{ width: `${uploadProgress}%` }}
-                                          />
-                                        </div>
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
 
                                 {/* Lesson Actions */}
                                 <div className="flex items-center gap-1.5">
-                                  {/* Upload Video */}
-                                  <label
-                                    className="p-1.5 text-gray-400 hover:text-primary-600 transition cursor-pointer"
-                                    title="Upload video"
-                                  >
-                                    <FaUpload size={13} />
-                                    <input
-                                      type="file"
-                                      accept="video/*"
-                                      className="hidden"
-                                      disabled={uploadingLesson === lesson._id}
-                                      onChange={(e) =>
-                                        handleVideoUpload(
-                                          section._id,
-                                          lesson._id,
-                                          e.target.files[0]
-                                        )
-                                      }
-                                    />
-                                  </label>
+                                  {/* ✅ YouTube Button */}
                                   <button
-                                    onClick={() => setEditingLesson(lesson._id)}
+                                    onClick={() => {
+                                      setYoutubeModal({
+                                        sectionId: section._id,
+                                        lessonId: lesson._id,
+                                      });
+                                      setYoutubeUrl(
+                                        lesson.videoType === "youtube"
+                                          ? lesson.videoUrl
+                                          : ""
+                                      );
+                                    }}
+                                    className="p-1.5 text-red-500 hover:text-red-700 transition"
+                                    title={
+                                      lesson.videoType === "youtube"
+                                        ? "Update YouTube URL"
+                                        : "Add YouTube video"
+                                    }
+                                  >
+                                    <FaYoutube size={16} />
+                                  </button>
+
+                                  <button
+                                    onClick={() =>
+                                      setEditingLesson(lesson._id)
+                                    }
                                     className="p-1.5 text-gray-400 hover:text-primary-600 transition"
                                     title="Edit lesson"
                                   >
@@ -690,10 +820,13 @@ const AdminCurriculumPage = () => {
                           <input
                             value={newLesson.title || ""}
                             onChange={(e) =>
-                              setNewLesson((p) => ({ ...p, title: e.target.value }))
+                              setNewLesson((p) => ({
+                                ...p,
+                                title: e.target.value,
+                              }))
                             }
                             placeholder="Lesson title *"
-                            className="input-field w-full"
+                            className="input-field w-full px-3 py-2 border rounded"
                           />
                           <textarea
                             value={newLesson.description || ""}
@@ -705,7 +838,7 @@ const AdminCurriculumPage = () => {
                             }
                             placeholder="Description (optional)"
                             rows={2}
-                            className="input-field w-full resize-none"
+                            className="input-field w-full resize-none px-3 py-2 border rounded"
                           />
                           <label className="flex items-center gap-2 text-sm">
                             <input
@@ -731,12 +864,12 @@ const AdminCurriculumPage = () => {
                                 }))
                               }
                             />
-                            Publish immediately (otherwise saved as draft)
+                            Publish immediately
                           </label>
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleAddLesson(section._id)}
-                              className="btn-primary text-sm py-1.5"
+                              className="btn-primary text-sm py-1.5 px-4 bg-primary-600 text-white rounded hover:bg-primary-700"
                             >
                               Add Lesson
                             </button>
@@ -745,7 +878,7 @@ const AdminCurriculumPage = () => {
                                 setAddingLesson({});
                                 setNewLesson({});
                               }}
-                              className="btn-secondary text-sm py-1.5"
+                              className="btn-secondary text-sm py-1.5 px-4 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
                             >
                               Cancel
                             </button>
@@ -764,6 +897,122 @@ const AdminCurriculumPage = () => {
                 </div>
               );
             })}
+        </div>
+      )}
+
+      {/* ✅ YouTube URL Modal */}
+      {youtubeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl">
+            <div className="flex items-center gap-2 mb-4">
+              <FaYoutube className="text-red-600 text-3xl" />
+              <h2 className="text-xl font-bold">Add YouTube Video</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  YouTube Video URL
+                </label>
+                <input
+                  type="url"
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  autoFocus
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Paste any YouTube URL (regular, short, or embed link)
+                </p>
+              </div>
+
+              {/* ✅ Live Preview */}
+              {youtubeUrl && getYouTubeVideoId(youtubeUrl) && (
+                <div>
+                  <p className="text-sm font-medium mb-2 text-green-700">
+                    ✅ Preview:
+                  </p>
+                  <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${getYouTubeVideoId(
+                        youtubeUrl
+                      )}`}
+                      title="YouTube preview"
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Invalid URL Warning */}
+              {youtubeUrl && !getYouTubeVideoId(youtubeUrl) && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-xs text-red-700">
+                    ❌ Invalid YouTube URL. Please use a format like:
+                    <br />
+                    <code className="bg-red-100 px-1 rounded">
+                      https://youtu.be/VIDEO_ID
+                    </code>
+                  </p>
+                </div>
+              )}
+
+              {/* Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-blue-900 mb-2">
+                  📋 How to upload to YouTube:
+                </p>
+                <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
+                  <li>
+                    Go to{" "}
+                    <a
+                      href="https://youtube.com/upload"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline font-medium"
+                    >
+                      youtube.com/upload
+                    </a>
+                  </li>
+                  <li>Upload your video</li>
+                  <li>
+                    Set visibility to <strong>"Unlisted"</strong> (NOT
+                    Public!)
+                  </li>
+                  <li>Copy the video URL</li>
+                  <li>Paste it above</li>
+                </ol>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setYoutubeModal(null);
+                    setYoutubeUrl("");
+                  }}
+                  disabled={savingYoutube}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveYouTubeUrl}
+                  disabled={
+                    savingYoutube ||
+                    !youtubeUrl.trim() ||
+                    !getYouTubeVideoId(youtubeUrl)
+                  }
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <FaYoutube />
+                  {savingYoutube ? "Saving..." : "Save Video"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

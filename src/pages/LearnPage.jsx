@@ -3,9 +3,17 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
-  FaCheckCircle, FaLock, FaChevronDown, FaChevronUp,
-  FaArrowLeft, FaCertificate, FaComment, FaPaperPlane,
+  FaCheckCircle,
+  FaLock,
+  FaChevronDown,
+  FaChevronUp,
+  FaArrowLeft,
+  FaCertificate,
+  FaComment,
+  FaPaperPlane,
   FaCircle,
+  FaYoutube,
+  FaPlay,
 } from "react-icons/fa";
 import {
   getEnrollment,
@@ -211,7 +219,6 @@ const LearnPage = () => {
         text: newComment.trim(),
       });
       setNewComment("");
-      // Add new comment to top of list
       if (data.comment) {
         setComments((prev) => [data.comment, ...prev]);
       } else {
@@ -229,11 +236,15 @@ const LearnPage = () => {
     const content = replyContent[commentId];
     if (!content?.trim()) return;
     try {
-      const { data } = await replyToComment(slug, activeLesson._id, commentId, {
-        text: content.trim(),
-      });
+      const { data } = await replyToComment(
+        slug,
+        activeLesson._id,
+        commentId,
+        {
+          text: content.trim(),
+        }
+      );
       setReplyContent((p) => ({ ...p, [commentId]: "" }));
-      // Add reply to the comment locally
       if (data.reply) {
         setComments((prev) =>
           prev.map((c) =>
@@ -253,6 +264,17 @@ const LearnPage = () => {
 
   const getCompletedCount = () => {
     return enrollment?.progress?.filter((p) => p.completed).length || 0;
+  };
+
+  // ✅ Manual mark complete button for YouTube videos
+  const handleManualComplete = () => {
+    if (!activeLesson) return;
+    if (isLessonDone(activeLesson._id)) {
+      toast("Lesson already marked as complete", { icon: "ℹ️" });
+      return;
+    }
+    handleProgress(activeLesson.videoDuration || 0, true);
+    toast.success("✅ Lesson marked as complete!");
   };
 
   if (loading) return <Loader />;
@@ -354,14 +376,21 @@ const LearnPage = () => {
                     {section.title}
                   </p>
                   <p className="text-xs text-gray-400">
-                    {section.lessons.filter((l) => isLessonDone(l._id)).length}/
-                    {section.lessons.length} completed
+                    {section.lessons.filter((l) => isLessonDone(l._id))
+                      .length}
+                    /{section.lessons.length} completed
                   </p>
                 </div>
                 {expandedSections[section._id] ? (
-                  <FaChevronUp size={12} className="text-gray-400 flex-shrink-0" />
+                  <FaChevronUp
+                    size={12}
+                    className="text-gray-400 flex-shrink-0"
+                  />
                 ) : (
-                  <FaChevronDown size={12} className="text-gray-400 flex-shrink-0" />
+                  <FaChevronDown
+                    size={12}
+                    className="text-gray-400 flex-shrink-0"
+                  />
                 )}
               </button>
 
@@ -384,16 +413,24 @@ const LearnPage = () => {
                       >
                         <div className="flex-shrink-0 mt-0.5">
                           {done ? (
-                            <FaCheckCircle size={14} className="text-green-500" />
+                            <FaCheckCircle
+                              size={14}
+                              className="text-green-500"
+                            />
                           ) : lesson.videoUrl ? (
                             <FaCircle
                               size={14}
                               className={
-                                isActive ? "text-primary-600" : "text-gray-300"
+                                isActive
+                                  ? "text-primary-600"
+                                  : "text-gray-300"
                               }
                             />
                           ) : (
-                            <FaLock size={12} className="text-gray-300 mt-0.5" />
+                            <FaLock
+                              size={12}
+                              className="text-gray-300 mt-0.5"
+                            />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -406,17 +443,27 @@ const LearnPage = () => {
                           >
                             {lesson.title}
                           </p>
-                          {lesson.videoDuration > 0 && (
-                            <p className="text-xs text-gray-400 mt-0.5">
-                              {Math.floor(lesson.videoDuration / 60)}:
-                              {(lesson.videoDuration % 60).toString().padStart(2, "0")}
-                            </p>
-                          )}
-                          {lesson.isFree && (
-                            <span className="text-xs text-green-600 font-medium">
-                              Preview
-                            </span>
-                          )}
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            {/* ✅ YouTube badge */}
+                            {lesson.videoType === "youtube" && (
+                              <span className="flex items-center gap-1 text-xs text-red-600">
+                                <FaYoutube size={10} />
+                              </span>
+                            )}
+                            {lesson.videoDuration > 0 && (
+                              <p className="text-xs text-gray-400">
+                                {Math.floor(lesson.videoDuration / 60)}:
+                                {(lesson.videoDuration % 60)
+                                  .toString()
+                                  .padStart(2, "0")}
+                              </p>
+                            )}
+                            {lesson.isFree && (
+                              <span className="text-xs text-green-600 font-medium">
+                                Preview
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </button>
                     );
@@ -432,19 +479,43 @@ const LearnPage = () => {
       <main className="flex-1 overflow-y-auto">
         {activeLesson ? (
           <div className="max-w-4xl mx-auto p-4 lg:p-8">
+            {/* ✅ UPDATED — VideoPlayer with videoType + thumbnailUrl */}
             <VideoPlayer
               key={activeLesson._id}
               src={activeLesson.videoUrl}
+              videoType={activeLesson.videoType}
+              poster={activeLesson.thumbnailUrl}
               lessonId={activeLesson._id}
               onProgress={handleProgress}
               onComplete={handleLessonComplete}
             />
 
+            {/* ✅ YouTube Notice */}
+            {activeLesson.videoType === "youtube" && (
+              <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+                <FaYoutube
+                  className="text-red-600 mt-0.5 flex-shrink-0"
+                  size={16}
+                />
+                <p className="text-xs text-red-800">
+                  This lesson uses YouTube video. Progress tracking may
+                  require you to play the video fully or use the button
+                  below.
+                </p>
+              </div>
+            )}
+
             {/* Lesson Info */}
             <div className="mt-6">
               <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    {activeLesson.videoType === "youtube" && (
+                      <FaYoutube
+                        className="text-red-600"
+                        title="YouTube video"
+                      />
+                    )}
                     {activeLesson.title}
                   </h1>
                   {activeLesson.description && (
@@ -453,11 +524,25 @@ const LearnPage = () => {
                     </p>
                   )}
                 </div>
-                {isLessonDone(activeLesson._id) && (
-                  <span className="flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium flex-shrink-0">
-                    <FaCheckCircle /> Completed
-                  </span>
-                )}
+
+                <div className="flex items-center gap-2">
+                  {/* ✅ Manual Mark Complete Button (useful for YouTube) */}
+                  {!isLessonDone(activeLesson._id) && (
+                    <button
+                      onClick={handleManualComplete}
+                      className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-primary-700 transition"
+                      title="Mark this lesson as complete"
+                    >
+                      <FaCheckCircle size={14} /> Mark Complete
+                    </button>
+                  )}
+
+                  {isLessonDone(activeLesson._id) && (
+                    <span className="flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium flex-shrink-0">
+                      <FaCheckCircle /> Completed
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -548,7 +633,9 @@ const LearnPage = () => {
                                   </span>
                                 )}
                                 <span className="text-xs text-gray-400">
-                                  {new Date(comment.createdAt).toLocaleDateString()}
+                                  {new Date(
+                                    comment.createdAt
+                                  ).toLocaleDateString()}
                                 </span>
                               </div>
                               <p className="text-sm text-gray-700 leading-relaxed">
@@ -558,9 +645,13 @@ const LearnPage = () => {
                               {comment.replies?.length > 0 && (
                                 <div className="mt-3 pl-4 border-l-2 border-gray-100 space-y-3">
                                   {comment.replies.map((reply) => (
-                                    <div key={reply._id} className="flex gap-2">
+                                    <div
+                                      key={reply._id}
+                                      className="flex gap-2"
+                                    >
                                       <div className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                        {reply.user?.name?.[0]?.toUpperCase() || "U"}
+                                        {reply.user?.name?.[0]?.toUpperCase() ||
+                                          "U"}
                                       </div>
                                       <div>
                                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -596,7 +687,9 @@ const LearnPage = () => {
                                 />
                                 <button
                                   onClick={() => handleReply(comment._id)}
-                                  disabled={!replyContent[comment._id]?.trim()}
+                                  disabled={
+                                    !replyContent[comment._id]?.trim()
+                                  }
                                   className="text-primary-600 hover:text-primary-700 text-sm font-medium disabled:opacity-40 px-2"
                                 >
                                   Reply

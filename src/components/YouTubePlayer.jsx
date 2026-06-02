@@ -1,5 +1,5 @@
 // src/components/common/VideoPlayer.jsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 // ============================================================
 // ✅ Helper Functions
@@ -24,7 +24,7 @@ const getVimeoVideoId = (url) => {
 // Auto-detect video type from URL
 const detectVideoType = (url) => {
   if (!url) return "";
-  const u = String(url).toLowerCase();
+  const u = url.toLowerCase();
   if (u.includes("youtube.com") || u.includes("youtu.be")) return "youtube";
   if (u.includes("vimeo.com")) return "vimeo";
   if (u.includes("cloudinary.com")) return "cloudinary";
@@ -53,7 +53,7 @@ const VideoPlayer = ({
   const type = videoType || detectVideoType(url);
 
   const videoRef = useRef(null);
-  const iframeContainerRef = useRef(null);
+  const iframeRef = useRef(null);
   const youtubePlayerRef = useRef(null);
   const progressIntervalRef = useRef(null);
   const lastProgressUpdateRef = useRef(0);
@@ -62,7 +62,7 @@ const VideoPlayer = ({
   const [isYouTubeReady, setIsYouTubeReady] = useState(false);
 
   // ============================================================
-  // ✅ Reset state when lesson changes
+  // ✅ Reset completion flag when lesson changes
   // ============================================================
   useEffect(() => {
     completedRef.current = false;
@@ -73,7 +73,6 @@ const VideoPlayer = ({
   // ✅ HTML5/Cloudinary Progress Tracking
   // ============================================================
   useEffect(() => {
-    // Skip for YouTube/Vimeo
     if (type === "youtube" || type === "vimeo") return;
     if (!videoRef.current) return;
 
@@ -122,11 +121,12 @@ const VideoPlayer = ({
   }, [type, url, onProgress, onComplete, lessonId]);
 
   // ============================================================
-  // ✅ Load YouTube IFrame API
+  // ✅ YouTube IFrame API Setup
   // ============================================================
   useEffect(() => {
     if (type !== "youtube") return;
 
+    // Load YouTube IFrame API if not already loaded
     if (!window.YT) {
       const tag = document.createElement("script");
       tag.src = "https://www.youtube.com/iframe_api";
@@ -142,22 +142,22 @@ const VideoPlayer = ({
   }, [type]);
 
   // ============================================================
-  // ✅ Initialize YouTube Player
+  // ✅ YouTube Player Initialization & Progress Tracking
   // ============================================================
   useEffect(() => {
     if (type !== "youtube") return;
     if (!isYouTubeReady) return;
-    if (!iframeContainerRef.current) return;
+    if (!iframeRef.current) return;
 
     const videoId = getYouTubeVideoId(url);
     if (!videoId) return;
 
-    // Destroy previous player if exists
+    // Destroy previous player
     if (youtubePlayerRef.current?.destroy) {
       try {
         youtubePlayerRef.current.destroy();
       } catch (e) {
-        // ignore
+        console.warn("Failed to destroy previous YT player:", e);
       }
     }
 
@@ -166,105 +166,96 @@ const VideoPlayer = ({
       clearInterval(progressIntervalRef.current);
     }
 
-    // Create div for YouTube player
-    iframeContainerRef.current.innerHTML = `<div id="youtube-player-${lessonId}"></div>`;
-
     // Create new YouTube player
-    youtubePlayerRef.current = new window.YT.Player(
-      `youtube-player-${lessonId}`,
-      {
-        videoId: videoId,
-        width: "100%",
-        height: "100%",
-        playerVars: {
-          rel: 0,
-          modestbranding: 1,
-          showinfo: 0,
-          controls: 1,
-          fs: 1,
-          cc_load_policy: 0,
-          iv_load_policy: 3,
-          autohide: 0,
-          playsinline: 1,
-          autoplay: autoPlay ? 1 : 0,
+    youtubePlayerRef.current = new window.YT.Player(iframeRef.current, {
+      videoId: videoId,
+      playerVars: {
+        rel: 0,
+        modestbranding: 1,
+        showinfo: 0,
+        controls: 1,
+        fs: 1,
+        cc_load_policy: 0,
+        iv_load_policy: 3,
+        autohide: 0,
+        playsinline: 1,
+        autoplay: autoPlay ? 1 : 0,
+      },
+      events: {
+        onReady: (event) => {
+          console.log("YouTube player ready");
         },
-        events: {
-          onReady: () => {
-            console.log("✅ YouTube player ready");
-          },
-          onStateChange: (event) => {
-            // PLAYING = 1
-            if (event.data === window.YT.PlayerState.PLAYING) {
-              if (progressIntervalRef.current) {
-                clearInterval(progressIntervalRef.current);
-              }
-
-              progressIntervalRef.current = setInterval(() => {
-                if (!youtubePlayerRef.current?.getCurrentTime) return;
-
-                try {
-                  const currentTime =
-                    youtubePlayerRef.current.getCurrentTime();
-                  const duration = youtubePlayerRef.current.getDuration();
-
-                  if (!duration) return;
-
-                  const watchedDuration = Math.floor(currentTime);
-                  const percent = (currentTime / duration) * 100;
-
-                  if (
-                    watchedDuration - lastProgressUpdateRef.current >=
-                    10
-                  ) {
-                    lastProgressUpdateRef.current = watchedDuration;
-                    if (onProgress) {
-                      onProgress(watchedDuration, percent >= 90);
-                    }
-                  }
-
-                  if (percent >= 90 && !completedRef.current) {
-                    completedRef.current = true;
-                    if (onProgress) {
-                      onProgress(watchedDuration, true);
-                    }
-                  }
-                } catch (err) {
-                  console.warn("YT progress error:", err);
-                }
-              }, 1000);
+        onStateChange: (event) => {
+          // PLAYING = 1
+          if (event.data === window.YT.PlayerState.PLAYING) {
+            // Start tracking progress
+            if (progressIntervalRef.current) {
+              clearInterval(progressIntervalRef.current);
             }
 
-            // ENDED = 0
-            if (event.data === window.YT.PlayerState.ENDED) {
-              if (progressIntervalRef.current) {
-                clearInterval(progressIntervalRef.current);
-              }
+            progressIntervalRef.current = setInterval(() => {
+              if (!youtubePlayerRef.current?.getCurrentTime) return;
 
-              if (!completedRef.current && onProgress) {
-                try {
-                  const duration = youtubePlayerRef.current.getDuration();
+              try {
+                const currentTime = youtubePlayerRef.current.getCurrentTime();
+                const duration = youtubePlayerRef.current.getDuration();
+
+                if (!duration) return;
+
+                const watchedDuration = Math.floor(currentTime);
+                const percent = (currentTime / duration) * 100;
+
+                // Throttle: only send every 10 seconds
+                if (watchedDuration - lastProgressUpdateRef.current >= 10) {
+                  lastProgressUpdateRef.current = watchedDuration;
+                  if (onProgress) {
+                    onProgress(watchedDuration, percent >= 90);
+                  }
+                }
+
+                // Mark as complete at 90%
+                if (percent >= 90 && !completedRef.current) {
                   completedRef.current = true;
-                  onProgress(Math.floor(duration), true);
-                } catch (err) {
-                  // ignore
+                  if (onProgress) {
+                    onProgress(watchedDuration, true);
+                  }
                 }
+              } catch (err) {
+                console.warn("YT progress error:", err);
               }
+            }, 1000);
+          }
 
-              if (onComplete) {
-                setTimeout(() => onComplete(), 1000);
+          // ENDED = 0
+          if (event.data === window.YT.PlayerState.ENDED) {
+            if (progressIntervalRef.current) {
+              clearInterval(progressIntervalRef.current);
+            }
+
+            if (!completedRef.current && onProgress) {
+              try {
+                const duration = youtubePlayerRef.current.getDuration();
+                completedRef.current = true;
+                onProgress(Math.floor(duration), true);
+              } catch (err) {
+                console.warn("YT end error:", err);
               }
             }
 
-            // PAUSED = 2
-            if (event.data === window.YT.PlayerState.PAUSED) {
-              if (progressIntervalRef.current) {
-                clearInterval(progressIntervalRef.current);
-              }
+            if (onComplete) {
+              setTimeout(() => onComplete(), 1000);
             }
-          },
+          }
+
+          // PAUSED = 2
+          if (event.data === window.YT.PlayerState.PAUSED) {
+            if (progressIntervalRef.current) {
+              clearInterval(progressIntervalRef.current);
+            }
+          }
         },
-      }
-    );
+      },
+    });
 
     return () => {
       if (progressIntervalRef.current) {
@@ -278,7 +269,7 @@ const VideoPlayer = ({
         }
       }
     };
-  }, [isYouTubeReady, url, type, lessonId, autoPlay]);
+  }, [isYouTubeReady, url, type, lessonId, onProgress, onComplete, autoPlay]);
 
   // ============================================================
   // ✅ NO VIDEO URL
@@ -295,7 +286,7 @@ const VideoPlayer = ({
   }
 
   // ============================================================
-  // ✅ YOUTUBE PLAYER (uses iframe via YT API)
+  // ✅ YOUTUBE PLAYER
   // ============================================================
   if (type === "youtube") {
     const videoId = getYouTubeVideoId(url);
@@ -310,23 +301,13 @@ const VideoPlayer = ({
 
     return (
       <div className="aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
-        <div ref={iframeContainerRef} className="w-full h-full">
-          {/* Fallback while YT API loads */}
-          <iframe
-            src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
-            title="Course video"
-            className="w-full h-full"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
-        </div>
+        <div ref={iframeRef} className="w-full h-full" />
       </div>
     );
   }
 
   // ============================================================
-  // ✅ VIMEO PLAYER (uses iframe)
+  // ✅ VIMEO PLAYER
   // ============================================================
   if (type === "vimeo") {
     const videoId = getVimeoVideoId(url);
@@ -354,39 +335,8 @@ const VideoPlayer = ({
   }
 
   // ============================================================
-  // ✅ HTML5 / Cloudinary VIDEO (uses <video> tag)
+  // ✅ HTML5 / CLOUDINARY VIDEO
   // ============================================================
-
-  // Guard: prevent <video> from receiving non-media URLs (e.g. youtube/vimeo pages)
-  // which causes: "NotSupportedError: The element has no supported sources."
-  const looksLikeDirectMediaUrl = (maybeUrl) => {
-    if (!maybeUrl) return false;
-    const u = String(maybeUrl).toLowerCase();
-    // Common direct-play formats and HLS
-    return (
-      u.includes(".mp4") ||
-      u.includes(".webm") ||
-      u.includes(".ogg") ||
-      u.includes(".m3u8") ||
-      u.includes("cloudinary.com") // many Cloudinary delivery URLs end with playable formats
-    );
-  };
-
-  const shouldUseHtml5 = type !== "youtube" && type !== "vimeo" && looksLikeDirectMediaUrl(url);
-
-  if (!shouldUseHtml5) {
-    return (
-      <div className="aspect-video bg-red-900 rounded-lg flex items-center justify-center">
-        <div className="text-center text-white/90 p-4">
-          <p className="text-base font-semibold">Video source not supported</p>
-          <p className="text-sm opacity-80 mt-1">
-            This lesson video URL can’t be played by the browser.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
       <video
